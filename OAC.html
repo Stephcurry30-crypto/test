@@ -1,0 +1,1954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owning a Car - Metrobank LifeBanking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            letter-spacing: 0.01em;
+        }
+        .metrobank-blue { color: #0033a0; }
+        .metrobank-blue-bg { background-color: #0033a0; }
+        
+        .hero-text-shadow {
+             text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Carousel Styles */
+        .carousel-container {
+            position: relative;
+            overflow: hidden;
+        }
+        .carousel-track {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+        .carousel-slide {
+            min-width: 100%;
+            position: relative;
+        }
+        .carousel-dots {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+        .carousel-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .carousel-dot.active {
+            background-color: white;
+            transform: scale(1.2);
+        }
+        .promo-carousel .carousel-slide {
+            min-width: calc(100% / 3 - 20px); /* Show 3 slides on desktop */
+            margin: 0 10px;
+        }
+        @media (max-width: 1024px) {
+            .promo-carousel .carousel-slide {
+                min-width: calc(100% / 2 - 20px); /* Show 2 slides on tablet */
+            }
+        }
+        @media (max-width: 768px) {
+            .promo-carousel .carousel-slide {
+                min-width: 100%; /* Show 1 slide on mobile */
+            }
+        }
+        .carousel-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .carousel-arrow.left { left: 15px; }
+        .carousel-arrow.right { right: 15px; }
+
+        /* Hero Animation Styles */
+        .hero-content > * {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .carousel-slide.active .hero-content > * {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .carousel-slide.active .hero-content h1 { transition-delay: 0.2s; }
+        .carousel-slide.active .hero-content p { transition-delay: 0.4s; }
+        .carousel-slide.active .hero-content a, .carousel-slide.active .hero-content div { transition-delay: 0.6s; }
+
+
+        /* Dropdown */
+        .dropdown-menu {
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+        }
+        
+        /* Modal Styles & Animation */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 50;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            background-color: rgba(0,0,0,0.6);
+            padding: 2rem 0;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .modal.visible {
+            opacity: 1;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transform: scale(0.95);
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal.visible .modal-content {
+            transform: scale(1);
+        }
+        .quiz-modal-content { max-width: 800px; }
+        .locations-modal-content { max-width: 600px; }
+        .schedule-modal-content { max-width: 500px; }
+        .login-modal-content { max-width: 450px; }
+        .signup-modal-content { max-width: 480px; }
+
+
+        .quiz-step {
+            display: none;
+        }
+        .quiz-step.active {
+            display: block;
+        }
+        .quiz-option, .time-slot-btn {
+            border: 2px solid #e5e7eb;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .quiz-option:hover, .time-slot-btn:hover {
+            border-color: #0033a0;
+            background-color: #eef2ff;
+        }
+        .quiz-option.selected, .time-slot-btn.selected {
+            border-color: #0033a0;
+            background-color: #e0e7ff;
+            box-shadow: 0 0 0 2px #0033a0;
+        }
+        .progress-bar-bg {
+            background-color: #e5e7eb;
+        }
+        .progress-bar {
+            background-color: #0033a0;
+            transition: width 0.3s ease-in-out;
+        }
+        .showroom-filter-btn.active {
+            background-color: #0033a0 !important;
+            color: white !important;
+        }
+
+        /* Article Card Style */
+        .article-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease;
+        }
+        .article-card:hover {
+            transform: translateY(-5px);
+        }
+        .article-card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            z-index: 1;
+        }
+        .article-card-overlay {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            background: linear-gradient(to top, rgba(0, 51, 160, 0.95) 0%, rgba(0, 51, 160, 0.7) 50%, transparent 100%);
+        }
+        
+        .filter-btn.active {
+            background-color: #0033a0 !important;
+            color: white !important;
+        }
+        .filter-btn[data-filter="all"].active {
+            background-color: #0033a0 !important;
+            color: white !important;
+        }
+
+        .decorative-shape {
+            position: absolute;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .dealer-select-item {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .dealer-select-item:hover {
+            background-color: #eef2ff;
+        }
+
+        /* --- Scroll Animation --- */
+        .fade-in-section {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .fade-in-section.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Enhanced Button Hover --- */
+        .cta-button-hover {
+             transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+        }
+        .cta-button-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 51, 160, 0.3);
+        }
+        
+        /* --- Chatbot Styles --- */
+        #chatbot-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        #chatbot-open-btn {
+            background-color: #0033a0;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #chatbot-open-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+        #chatbot-window {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 370px;
+            height: 500px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            flex-direction: column;
+            overflow: hidden;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        #chatbot-window.visible {
+            display: flex;
+            transform: scale(1);
+            opacity: 1;
+        }
+        #chatbot-header {
+            background-color: #0033a0;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #chatbot-messages {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+        }
+        .chat-message {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-message.user {
+            align-items: flex-end;
+        }
+        .chat-message.bot {
+            align-items: flex-start;
+        }
+        .chat-message-bubble {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .chat-message.user .chat-message-bubble {
+            background-color: #0033a0;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        .chat-message.bot .chat-message-bubble {
+            background-color: #e9ecef;
+            color: #333;
+            border-bottom-left-radius: 5px;
+        }
+        #chatbot-input-form {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #e5e7eb;
+        }
+        #chatbot-input {
+            flex-grow: 1;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 14px;
+            outline: none;
+        }
+        #chatbot-send-btn {
+            background-color: #0033a0;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            margin-left: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* New Login/Signup Styles */
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 9999px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .social-btn:hover {
+            background-color: #f3f4f6;
+        }
+        .social-btn img {
+            width: 1.25rem;
+            height: 1.25rem;
+            margin-right: 0.75rem;
+        }
+        .separator {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+        .separator::before,
+        .separator::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .separator:not(:empty)::before {
+            margin-right: .5em;
+        }
+        .separator:not(:empty)::after {
+            margin-left: .5em;
+        }
+
+        /* Logo Carousel Styles */
+        .partner-logos-container {
+            height: 30px; /* Set a fixed height */
+            overflow: hidden;
+            position: relative;
+            filter: grayscale(100%);
+            opacity: 0.6;
+            margin-bottom: 1.5rem;
+            width: 150px; /* Width of a single logo */
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .partner-logos-track {
+            display: flex;
+            height: 100%;
+            transition: transform 0.8s ease-in-out;
+        }
+        .partner-logos-track img {
+            height: 30px;
+            width: 150px; /* Fixed width for each logo */
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Header -->
+    <header id="main-header" class="bg-white shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <!-- Left Side -->
+            <div class="flex items-center space-x-8">
+                <!-- Logo -->
+                <a href="#" class="flex-shrink-0">
+                     <img src="https://www.gtcapital.com.ph/storage/uploads/2017/09/59bc94ce59565.png" alt="LifeBanking Logo" class="h-8 w-auto" onerror="this.onerror=null;this.src='https://placehold.co/150x32/0033a0/ffffff?text=Metrobank';">
+                </a>
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center space-x-5 text-sm">
+                    <a href="#" class="text-gray-600 font-semibold hover:text-metrobank-blue transition">Home</a>
+                    <a href="#" class="text-gray-600 font-semibold hover:text-metrobank-blue transition">Life Stages</a>
+                    <a href="#" class="text-gray-600 font-semibold hover:text-metrobank-blue transition">Owning a Home</a>
+                    <a href="#" class="text-gray-600 font-semibold hover:text-metrobank-blue transition">Growing my Money</a>
+                
+                    <!-- Owning a Car Dropdown -->
+                    <div class="relative dropdown" id="dropdown-container">
+                        <button id="dropdown-button" class="flex items-center font-semibold text-gray-600 hover:text-metrobank-blue transition">
+                            <span>Owning a Car</span>
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="dropdown-menu" class="dropdown-menu absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-xl hidden opacity-0 transform -translate-y-2">
+                            <a href="#appointment" class="block px-4 py-3 text-gray-700 hover:bg-gray-100">Schedule an Appointment</a>
+                            <a href="#car-loan" class="block px-4 py-3 text-gray-700 hover:bg-gray-100">Apply for a Car Loan</a>
+                            <a href="#promos" class="block px-4 py-3 text-gray-700 hover:bg-gray-100">Check our Car Promos</a>
+                            <a href="#toyota-card" class="block px-4 py-3 text-gray-700 hover:bg-gray-100">Apply for a Toyota MasterCard</a>
+                            <a href="#articles" class="block px-4 py-3 text-gray-700 hover:bg-gray-100">Read More Articles</a>
+
+                        </div>
+                    </div>
+                </nav>
+            </div>
+            
+            <!-- Right Side -->
+            <div class="hidden md:flex items-center space-x-4">
+                <!-- Search Icon -->
+                <button class="text-gray-600 hover:text-metrobank-blue transition">
+                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </button>
+                <button id="openLoginModalBtn" class="text-gray-600 hover:text-metrobank-blue transition" title="Login">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h5a3 3 0 013 3v1"></path></svg>
+                </button>
+                <button id="openSignupModalBtn" class="metrobank-blue-bg text-white font-semibold text-sm py-2 px-4 rounded-full hover:bg-blue-800 transition cta-button-hover">
+                    Sign Up
+                </button>
+            </div>
+    
+            <!-- Mobile Menu Button -->
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-gray-700 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-200">
+            <a href="#" class="block px-6 py-3 text-gray-700 font-semibold hover:bg-gray-100">Home</a>
+            <a href="#" class="block px-6 py-3 text-gray-700 font-semibold hover:bg-gray-100">LifeStages</a>
+            <a href="#dropdown-container" class="block px-6 py-3 text-gray-700 font-semibold hover:bg-gray-100">Owning a Car</a>
+            <a href="#" id="openLoginModalBtnMobile" class="block px-6 py-3 text-gray-700 font-semibold hover:bg-gray-100">Login</a>
+            <a href="#" id="openSignupModalBtnMobile" class="block px-6 py-3 text-gray-700 font-semibold hover:bg-gray-100">Sign Up</a>
+            <div class="px-6 py-4">
+                <input type="text" placeholder="Search..." class="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300">
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- 1. Hero Carousel -->
+        <section class="relative w-full h-[50vh] text-white carousel-container" id="hero-carousel">
+            <div class="carousel-track h-full">
+                <!-- Slide 1 -->
+                <div class="carousel-slide h-full">
+                    <img src="https://web-assets.metrobank.com.ph/1730109944-car-loan-hero-24oct24.jpg" alt="Dream Car" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/1920x540/cccccc/000000?text=Drive+Your+Dream';">
+                    <div class="absolute inset-0 bg-gradient-to-r from-black/80 to-black/20 flex items-center justify-start">
+                        <div class="hero-content text-left max-w-lg lg:max-w-xl px-8 md:px-16 lg:px-24">
+                            <h1 class="text-3xl md:text-5xl font-bold mb-4 hero-text-shadow">Thinking of owning a car?</h1>
+                            <p class="text-base md:text-lg mb-6 hero-text-shadow">Your journey to a new car starts here. Let us guide you through every step.</p>
+                            <a href="#car-loan" class="metrobank-blue-bg text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-blue-800 transition-transform transform hover:scale-105 cta-button-hover">Explore Your Options</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Slide 2 -->
+                <div class="carousel-slide h-full">
+                    <img src="https://web-assets.metrobank.com.ph/1677651503-car-loan-ben2-bg-17feb23-v4.jpg" alt="Car Loan" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/1920x540/cccccc/000000?text=Affordable+Loans';">
+                    <div class="absolute inset-0 bg-gradient-to-r from-black/80 to-black/20 flex items-center justify-start">
+                        <div class="hero-content text-left max-w-lg lg:max-w-xl px-8 md:px-16 lg:px-24">
+                            <h1 class="text-3xl md:text-5xl font-bold mb-4 hero-text-shadow">Make That Dream Car Yours</h1>
+                            <p class="text-base md:text-lg mb-6 hero-text-shadow">With flexible payment terms, owning your dream car is more affordable than ever.</p>
+                            <a href="https://mcola.metrobank.com.ph/car-loan/apply-now" class="metrobank-blue-bg text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-blue-800 transition-transform transform hover:scale-105 cta-button-hover">Apply for a Car Loan</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Slide 3 -->
+                <div class="carousel-slide h-full">
+                    <img src="https://web-assets.metrobank.com.ph/1706247530-toyota-mastercard-1028px-x-366px.jpg?auto=compress&fit=crop" alt="Toyota Credit Card" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/1920x540/cccccc/000000?text=Exclusive+Rewards';">
+                    <div class="absolute inset-0 bg-gradient-to-r from-black/80 to-black/20 flex items-center justify-start">
+                        <div class="hero-content text-left max-w-lg lg:max-w-xl px-8 md:px-16 lg:px-24">
+                            <h1 class="text-3xl md:text-5xl font-bold mb-4 hero-text-shadow">Make Every Drive More Rewarding </h1>
+                            <p class="text-base md:text-lg mb-6 hero-text-shadow">Unlock exclusive perks and discounts with your Toyota MasterCard or any Metrobank Credit Card.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <a href="#promos" class="metrobank-blue-bg text-white font-bold py-2 px-4 text-sm rounded-full hover:bg-blue-800 transition-transform transform hover:scale-105 cta-button-hover">View our Promos</a>
+                                <a href="#toyota-card" class="metrobank-blue-bg text-white font-bold py-2 px-4 text-sm rounded-full hover:bg-blue-800 transition-transform transform hover:scale-105 cta-button-hover">Get a Toyota MC Card</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Slide 4 -->
+                <div class="carousel-slide h-full">
+                    <img src="https://web-assets.metrobank.com.ph/1712892507-asian-banker-article-banner-12apr24.jpg?auto=compress&fit=crop" alt="Car Tips" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/1920x540/cccccc/000000?text=Expert+Guides';">
+                    <div class="absolute inset-0 bg-gradient-to-r from-black/80 to-black/20 flex items-center justify-start">
+                        <div class="hero-content text-left max-w-lg lg:max-w-xl px-8 md:px-16 lg:px-24">
+                            <h1 class="text-3xl md:text-5xl font-bold mb-4 hero-text-shadow">Check our guides for car ownership</h1>
+                            <p class="text-base md:text-lg mb-6 hero-text-shadow"> Learn how you can prepare yourself for owning car through our tips & articles.</p>
+                            <a href="#articles" class="metrobank-blue-bg text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-blue-800 transition-transform transform hover:scale-105 cta-button-hover">Read Our Articles</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="carousel-dots" id="hero-dots"></div>
+        </section>
+
+        <!-- 2. Dreaming of Owning a Car -->
+        <section class="py-12 md:py-16 bg-white relative overflow-hidden fade-in-section">
+             <svg class="decorative-shape right-0 w-1/2 h-full" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,100 C20,0 80,100 100,0 L100,100 Z" fill="#f0f7ff"></path></svg>
+            <div class="container mx-auto px-6 relative z-10">
+                <div class="text-center mb-12">
+                    <h2 class="text-2xl md:text-3xl font-bold metrobank-blue">Your Guide to Car Ownership</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Getting a car is an exciting milestone. We've broken down the journey into simple, manageable steps to help you navigate the process with confidence and ease.</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Grid Item 1 -->
+                    <a href="#" class="article-card h-80 block text-white">
+                        <img src="https://lifebanking.metrobank.com.ph/app/uploads/2024/07/030_Mobile-Banner_920x620.jpg" alt="Article image" class="article-card-img" onerror="this.onerror=null;this.src='https://placehold.co/920x620/e2e8f0/4a5568?text=Article+Image';">
+                        <div class="article-card-overlay p-6 flex flex-col justify-end">
+                            <div>
+                                <p class="text-xs font-bold tracking-widest uppercase">ARTICLE | 5 MIN READ</p>
+                                <h3 class="text-xl font-bold mt-2 mb-3">First Things to Consider When Buying a Car</h3>
+                                <div class="font-semibold flex items-center">Read More <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg></div>
+                            </div>
+                        </div>
+                    </a>
+                    <!-- Grid Item 2 -->
+                    <a href="#" class="article-card h-80 block text-white">
+                        <img src="https://static1.topspeedimages.com/wordpress/wp-content/uploads/2024/09/ev-vs-ice-vehicle.jpg" alt="Article image" class="article-card-img" onerror="this.onerror=null;this.src='https://placehold.co/920x620/e2e8f0/4a5568?text=Article+Image';">
+                        <div class="article-card-overlay p-6 flex flex-col justify-end">
+                            <div>
+                                <p class="text-xs font-bold tracking-widest uppercase">ARTICLE | 7 MIN READ</p>
+                                <h3 class="text-xl font-bold mt-2 mb-3">EV, Gas, or Hybrid: Which is Right for You?</h3>
+                                <div class="font-semibold flex items-center">Read More <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg></div>
+                            </div>
+                        </div>
+                    </a>
+                    <!-- Grid Item 3 -->
+                    <a href="#" class="article-card h-80 block text-white">
+                        <img src="https://lifebanking.metrobank.com.ph/app/uploads/2024/02/0.07_Mobile-Banner_920x620.jpg" alt="Article image" class="article-card-img" onerror="this.onerror=null;this.src='https://placehold.co/920x620/e2e8f0/4a5568?text=Article+Image';">
+                        <div class="article-card-overlay p-6 flex flex-col justify-end">
+                            <div>
+                                <p class="text-xs font-bold tracking-widest uppercase">ARTICLE | 6 MIN READ</p>
+                                <h3 class="text-xl font-bold mt-2 mb-3">Finding Your Perfect Ride: Best Car for Your Needs</h3>
+                                <div class="font-semibold flex items-center">Read More <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg></div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Next Steps -->
+        <section id="next-steps" class="py-12 md:py-16 bg-blue-800 text-white relative overflow-hidden fade-in-section">
+            <svg class="decorative-shape left-0 top-0 w-1/3 h-full transform -scale-x-100" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,100 C20,0 80,100 100,0 L100,100 Z" fill="#00227a"></path></svg>
+            <svg class="decorative-shape right-0 bottom-0 w-1/4 h-1/2" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,100 C20,0 80,100 100,0 L100,100 Z" fill="#00227a"></path></svg>
+            <div class="container mx-auto px-6 relative z-10">
+                <div class="text-center mb-12">
+                    <h2 class="text-2xl md:text-3xl font-bold">Ready for Your Next Move?</h2>
+                    <p class="mt-4 text-lg text-blue-200 max-w-3xl mx-auto">Whether you're ready to apply, want to see a car in person, or need help choosing, we have steps that you can take to get you closer for your dream car. </p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-8 text-center">
+                    <!-- Grid Item 1: Take a Quiz -->
+                    <div class="bg-white p-8 rounded-lg shadow-xl flex flex-col items-center">
+                        <img src="https://sa.kapamilya.com/absnews/abscbnnews/media/2023/advertorial/07/21/metrobank.jpg" class="rounded-full mb-6" onerror="this.onerror=null;this.src='https://placehold.co/150x150/e2e8f0/4a5568?text=Quiz';">
+                       <h3 class="text-2xl font-bold mb-3 metrobank-blue">Take our Car Quiz</h3>
+                       <p class="text-gray-600 mb-6 flex-grow">Find the right car for you. Take our quick and easy quiz to get a personalized recommendation in seconds.</p>
+                       <button id="openQuizBtn" class="w-full metrobank-blue-bg text-white font-bold py-3 px-6 rounded-full hover:bg-blue-900 transition cta-button-hover">Take the Quiz</button>
+                   </div>
+                    <!-- Grid Item 2: Schedule Appointment -->
+                    <div id="appointment" class="bg-white p-8 rounded-lg shadow-xl flex flex-col items-center">
+                        <img src="https://orangemagazine.ph/wp-content/uploads/2022/08/Metrobank-Car-and-Home-Loan-promo.jpeg" class="rounded-full mb-6" onerror="this.onerror=null;this.src='https://placehold.co/150x150/e2e8f0/4a5568?text=Dealer';">
+                        <h3 class="text-2xl font-bold mb-3 metrobank-blue">Visit a Toyota Dealer</h3>
+                        <p class="text-gray-600 mb-6 flex-grow">There's nothing like the real thing. Get a feel for your future car by scheduling a test drive at your nearest Toyota dealership.</p>
+                        <button id="openScheduleModalBtn" class="w-full metrobank-blue-bg text-white font-bold py-3 px-6 rounded-full hover:bg-blue-900 transition cta-button-hover">Schedule an Appointment</button>
+                    </div>
+                    <!-- Grid Item 3: Car Loan -->
+                    <div id="car-loan" class="bg-white p-8 rounded-lg shadow-xl flex flex-col items-center">
+                        <img src="https://web-assets.metrobank.com.ph/1738823231-gmr-car-share-5feb25.jpg" class="rounded-full mb-6" onerror="this.onerror=null;this.src='https://placehold.co/150x150/e2e8f0/4a5568?text=Calculator';">
+                       <h3 class="text-2xl font-bold mb-3 metrobank-blue">Check our Car Calculator</h3> 
+                       <p class="text-gray-600 mb-6 flex-grow">Getting the car of your dreams is just a few steps away! You may assess your readiness through our online calculator. </p>
+                       <a href="https://mcola.metrobank.com.ph/car-loan" class="w-full metrobank-blue-bg text-white font-bold py-3 px-6 rounded-full hover:bg-blue-900 transition cta-button-hover"> Calculate your Car Budget </a>
+                   </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 4. Credit Card Promos -->
+        <section id="promos" class="py-12 md:py-16 bg-white relative overflow-hidden fade-in-section">
+            <svg class="decorative-shape left-0 transform -scale-x-100 w-1/2 h-full" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,100 C20,0 80,100 100,0 L100,100 Z" fill="#f0f7ff"></path></svg>
+            <div class="container mx-auto px-6 relative z-10">
+                <div class="text-center mb-12">
+                    <h2 class="text-2xl md:text-3xl font-bold metrobank-blue">Exclusive Car Promos</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">As a Metrobank cardholder, you get more than just a car. You get access to a world of exclusive deals and offers for your best car experience.</p>
+                </div>
+            
+                <div class="relative">
+                    <div class="carousel-container promo-carousel">
+                        <div class="carousel-track px-4">
+                            <!-- Promo 1 -->
+                            <div class="carousel-slide bg-gray-100 rounded-md shadow-md overflow-hidden flex flex-col">
+                                <img src="https://web-assets.metrobank.com.ph/1731649623-hub-october-seo-banner.png" alt="Promo Image" class="w-full h-41 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/433x280/e2e8f0/4a5568?text=Promo';">
+                                <div class="p-6 flex flex-col flex-grow">
+                                    <h4 class="text-lg font-bold metrobank-blue">0% Installment at Handyman</h4>
+                                    <p class="text-gray-600 mt-2 flex-grow">Enjoy 0% installment up to 6 months using your Metrobank credit card at partner merchants.</p>
+                                    <a href="https://www.metrobank.com.ph/promos/enjoy-zero-percent-installment-at-handyman" class="font-semibold text-metrobank-blue hover:underline mt-4 self-start">Learn More &rarr;</a>
+                                </div>
+                            </div>
+                            <!-- Promo 2 -->
+                             <div class="carousel-slide bg-gray-100 rounded-md shadow-md overflow-hidden flex flex-col">
+                                <img src="https://web-assets.metrobank.com.ph/1718938283-web-banner-ace-21june433x280.jpg" alt="Promo Image" class="w-full h-41 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/433x280/e2e8f0/4a5568?text=Promo';">
+                                <div class="p-6 flex flex-col flex-grow">
+                                    <h4 class="text-lg font-bold metrobank-blue">Up to PHP 500 cashback at Ace Hardware</h4>
+                                    <p class="text-gray-600 mt-2 flex-grow">Enjoy up to PHP 500 cashback when you shop at Ace Hardware with your Metrobank credit card!</p>
+                                    <a href="https://www.metrobank.com.ph/promos/up-to-five-hundred-pesos-cashback-at-ace-hardware" class="font-semibold text-metrobank-blue hover:underline mt-4 self-start">Learn More &rarr;</a>
+                                </div>
+                            </div>
+                            <!-- Promo 3 -->
+                            <div class="carousel-slide bg-gray-100 rounded-md shadow-md overflow-hidden flex flex-col">
+                                <img src="https://media.licdn.com/dms/image/v2/D5622AQFQE9Yc-7w3EQ/feedshare-shrink_800/feedshare-shrink_800/0/1689319672333?e=2147483647&v=beta&t=ewivTHWrnZYUYtmg5p9V1t-2tzj4AV-LOgkf02YAAqY" alt="Promo Image" class="w-full h-401object-cover" onerror="this.onerror=null;this.src='https://placehold.co/433x280/e2e8f0/4a5568?text=Promo';">
+                                <div class="p-6 flex flex-col flex-grow">
+                                    <h4 class="text-lg font-bold metrobank-blue">AXA Insurance Discount</h4>
+                                    <p class="text-gray-600 mt-2 flex-grow">Secure your car with AXA Car Insurance and get an exclusive 10% discount as a Metrobank cardholder.</p>
+                                    <a href="https://www.axa.com.ph/products/car-insurance/toyota-telematics-insurance" class="font-semibold text-metrobank-blue hover:underline mt-4 self-start">Learn More &rarr;</a>
+                                </div>
+                            </div>
+                             <!-- Promo 4 -->
+                            <div class="carousel-slide bg-gray-100 rounded-md shadow-md overflow-hidden flex flex-col">
+                                <img src="https://web-assets.metrobank.com.ph/1716888761-0-toyota-seo-banner.jpg" alt="Promo Image" class="w-full h-41 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/433x280/e2e8f0/4a5568?text=Promo';">
+                                <div class="p-6 flex flex-col flex-grow">
+                                    <h4 class="text-lg font-bold metrobank-blue">Enjoy 0% installment at Toyota</h4>
+                                    <p class="text-gray-600 mt-2 flex-grow">Enjoy 0% interest installment of up to 6 months at participating Toyota dealers on vehicle servicing.</p>
+                                    <a href="https://www.metrobank.com.ph/promos/zero-percent-installment-at-toyota" class="font-semibold text-metrobank-blue hover:underline mt-4 self-start">Learn More &rarr;</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="carousel-arrow left" id="promo-prev">&lt;</div>
+                    <div class="carousel-arrow right" id="promo-next">&gt;</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Toyota MasterCard Section -->
+        <section id="toyota-card" class="py-12 md:py-16 bg-blue-800 text-white relative overflow-hidden fade-in-section">
+             <svg class="decorative-shape right-0 w-1/2 h-full" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,100 C20,0 80,100 100,0 L100,100 Z" fill="#00227a"></path></svg>
+            <div class="container mx-auto px-6 relative z-10">
+                 <div class="text-center mb-12">
+                    <h2 class="text-2xl md:text-3xl font-bold">Make Ownership More Rewarding</h2>
+                    <p class="mt-4 text-lg text-blue-200 max-w-3xl mx-auto">Get the card that complements your drive. The Toyota MasterCard offers exclusive benefits for every motorist.</p>
+                </div>
+                <div class="bg-white text-gray-800 rounded-lg shadow-xl overflow-hidden flex flex-wrap md:flex-nowrap items-center">
+                    <div class="w-full md:w-1/2 p-8 md:p-12">
+                        <p class="metrobank-blue font-semibold">Don't have a Metrobank Credit Card yet?</p>
+                        <h3 class="text-2xl md:text-3xl font-bold mt-2 mb-6">The Complete Motorist Card</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <svg class="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                <div>
+                                    <h4 class="font-semibold">Up to PHP 15,000 Fuel Rebate</h4>
+                                    <p class="text-gray-600">Enjoy significant savings at Petron stations nationwide.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <svg class="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                <div>
+                                    <h4 class="font-semibold">10% Discount at Toyota</h4>
+                                    <p class="text-gray-600">Save on parts, accessories, and labor at any Toyota dealership.</p>
+                                </div>
+                            </div>
+                             <div class="flex items-start">
+                                <svg class="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                <div>
+                                    <h4 class="font-semibold">3% Fuel Rebate at Petron</h4>
+                                    <p class="text-gray-600">Get consistent fuel savings every time you gas up.</p>
+                                </div>
+                            </div>
+                             <div class="flex items-start">
+                                <svg class="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                <div>
+                                    <h4 class="font-semibold">2x Rewards Points</h4>
+                                    <p class="text-gray-600">Earn double rewards points on transactions at your preferred Toyota dealer.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="https://apply.metrobank.com.ph/app/ae00f606-9210-41e5-a3cb-6bf172e2dbfe?product_code=MTOA" class="mt-8 inline-block metrobank-blue-bg text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-blue-800 transition-transform transform hover:scale-105 cta-button-hover">Apply Now</a>
+                    </div>
+                    <div class="w-full md:w-1/2">
+                        <img src="https://scontent.fcrk3-2.fna.fbcdn.net/v/t1.6435-9/86971940_2932713173462532_7838914321403871232_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeGyzCpBeIlO517xaswhygVqkWuWSZWrxbKRa5ZJlavFssE_gVOqDobndeywYWaeVGfOeFX_xFSn3Rfb93-8Ehha&_nc_ohc=7uFeDjt74-wQ7kNvwF76gDu&_nc_oc=AdlbjOQ7Z0oY9yfh1XXIhVyUdebJWPRDz36ulc27NxnK_tcl82Y97J4F7bmO8mUhH9U&_nc_zt=23&_nc_ht=scontent.fcrk3-2.fna&_nc_gid=mmBcxTJ0YaDM5GsR2vS6-w&oh=00_AfSW0SpZ2I_zsPlUmY7MF9xbF96TpycnJq6GFqz4033LDA&oe=68B3ECB8" alt="Toyota MasterCard" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/800x600/e2e8f0/4a5568?text=Toyota+MasterCard';">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Read More Articles -->
+        <section id="articles" class="py-12 md:py-16 bg-white fade-in-section">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-2xl md:text-3xl font-bold metrobank-blue">Read Car Ownership Guides</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Knowledge is power, especially on the road. Dive deeper into topics that matter for every car owner with our curated articles and resources.</p>
+                </div>
+                <div class="flex justify-center flex-wrap gap-2 md:gap-4 mb-8" id="article-filters">
+                    <button data-filter="all" class="filter-btn active px-4 py-2 rounded-full font-semibold transition">All Articles</button>
+                    <button data-filter="saving" class="filter-btn bg-blue-100 text-metrobank-blue px-4 py-2 rounded-full font-semibold transition hover:bg-blue-200">Saving</button>
+                    <button data-filter="financing" class="filter-btn bg-blue-100 text-metrobank-blue px-4 py-2 rounded-full font-semibold transition hover:bg-blue-200">Financing</button>
+                    <button data-filter="insurance" class="filter-btn bg-blue-100 text-metrobank-blue px-4 py-2 rounded-full font-semibold transition hover:bg-blue-200">Insurance</button>
+                    <button data-filter="car-care" class="filter-btn bg-blue-100 text-metrobank-blue px-4 py-2 rounded-full font-semibold transition hover:bg-blue-200">Car Care</button>
+                    <button data-filter="reviews" class="filter-btn bg-blue-100 text-metrobank-blue px-4 py-2 rounded-full font-semibold transition hover:bg-blue-200">Reviews</button>
+                </div>
+                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8" id="article-grid">
+                    <!-- Articles will be injected here by JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="metrobank-blue-bg text-white text-sm">
+        <div class="container mx-auto px-6 py-12">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+                <!-- Contact Info -->
+                <div class="md:col-span-2 lg:col-span-1">
+                    <h4 class="font-bold mb-4 text-base">CONTACT US</h4>
+                    <p class="text-gray-300">For inquiries, please call our Metrobank Contact Center at (02) 88-700-700 (domestic toll-free 1-800-1888-5775) or send an e-mail to <a href="mailto:customercare@metrobank.com.ph" class="hover:underline">customercare@metrobank.com.ph</a></p>
+                    <p class="text-gray-300 mt-4">Metrobank is regulated by the Bangko Sentral ng Pilipinas Website: <a href="https://www.bsp.gov.ph" target="_blank" rel="noopener noreferrer" class="hover:underline">https://www.bsp.gov.ph</a></p>
+                </div>
+                <!-- Life Stages -->
+                <div>
+                    <h4 class="font-bold mb-4 text-base">LIFE STAGES</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:underline text-gray-300">Starting Out</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Moving Up The Ladder</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Raising A Family</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">At The Top of Your Game</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Enjoying Retirement</a></li>
+                    </ul>
+                </div>
+                <!-- Quick Links -->
+                <div>
+                    <h4 class="font-bold mb-4 text-base">QUICK LINKS</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:underline text-gray-300">Home</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Explore Metrobank</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Contact Us</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Terms Of Use</a></li>
+                    </ul>
+                </div>
+                <!-- Products -->
+                <div>
+                    <h4 class="font-bold mb-4 text-base">PRODUCTS</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:underline text-gray-300">Savings Account</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Home Loan</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Checking Account</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Car Loan</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Time Deposit</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Personal Loan</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Debit Card</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">UITF</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Credit Card</a></li>
+                        <li><a href="#" class="hover:underline text-gray-300">Wealth Management</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400 text-xs">
+                <p>&copy; 2024 Metrobank. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- Quiz Modal -->
+    <div id="quizModal" class="modal">
+        <div class="modal-content quiz-modal-content">
+            <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-800" onclick="closeModal(document.getElementById('quizModal'))">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div id="quiz-navigation" class="absolute top-4 left-4">
+                 <!-- Back button will be injected here -->
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full progress-bar-bg rounded-full h-2.5 mb-6 mt-8">
+              <div id="quizProgressBar" class="progress-bar h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+
+            <!-- Step 1: Budget -->
+            <div id="quiz-step-1" class="quiz-step active">
+                <h2 class="text-2xl font-bold text-center mb-2 metrobank-blue">What's your budget?</h2>
+                <p class="text-center text-gray-600 mb-6">This helps us find cars in your price range.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="quiz-option p-4 rounded-lg text-center" data-value="<1m">
+                        <div class="text-xl font-semibold">Under ₱1,000,000</div>
+                    </div>
+                    <div class="quiz-option p-4 rounded-lg text-center" data-value="1m-1.5m">
+                        <div class="text-xl font-semibold">₱1M - ₱1.5M</div>
+                    </div>
+                    <div class="quiz-option p-4 rounded-lg text-center" data-value="1.5m-2.5m">
+                        <div class="text-xl font-semibold">₱1.5M - ₱2.5M</div>
+                    </div>
+                    <div class="quiz-option p-4 rounded-lg text-center" data-value=">2.5m">
+                        <div class="text-xl font-semibold">Over ₱2.5M</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2: Car Type -->
+            <div id="quiz-step-2" class="quiz-step">
+                <h2 class="text-2xl font-bold text-center mb-2 metrobank-blue">What type of car are you looking for?</h2>
+                 <p class="text-center text-gray-600 mb-6">Consider your daily drives and typical passenger count.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="quiz-option p-4 rounded-lg" data-value="Sedan"><h3 class="font-bold text-lg">Sedan</h3><p class="text-sm text-gray-600">For city driving & fuel efficiency.</p></div>
+                    <div class="quiz-option p-4 rounded-lg" data-value="Hatchback"><h3 class="font-bold text-lg">Hatchback</h3><p class="text-sm text-gray-600">Compact, versatile, and sporty.</p></div>
+                    <div class="quiz-option p-4 rounded-lg" data-value="SUV"><h3 class="font-bold text-lg">SUV</h3><p class="text-sm text-gray-600">For family, adventure, and space.</p></div>
+                    <div class="quiz-option p-4 rounded-lg" data-value="MPV"><h3 class="font-bold text-lg">MPV</h3><p class="text-sm text-gray-600">Maximum space and passenger comfort.</p></div>
+                    <div class="quiz-option p-4 rounded-lg" data-value="Van"><h3 class="font-bold text-lg">Van</h3><p class="text-sm text-gray-600">For large families or business use.</p></div>
+                    <div class="quiz-option p-4 rounded-lg" data-value="Hybrid"><h3 class="font-bold text-lg">Hybrid/EV</h3><p class="text-sm text-gray-600">Eco-friendly and fuel-saving.</p></div>
+                </div>
+            </div>
+
+            <!-- Step 3: Priority -->
+             <div id="quiz-step-3" class="quiz-step">
+                <h2 class="text-2xl font-bold text-center mb-2 metrobank-blue">What's your main priority?</h2>
+                <p class="text-center text-gray-600 mb-6">What's the most important feature for you?</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="quiz-option p-4 rounded-lg" data-value="fuel"><h3 class="font-bold text-lg">Fuel Efficiency</h3><p class="text-sm text-gray-600">Save more on every trip.</p></div>
+                    <div class="quiz-option p-4 rounded-lg" data-value="performance"><h3 class="font-bold text-lg">Performance</h3><p class="text-sm text-gray-600">Power and a thrilling drive.</p></div>
+                    <div class="quiz-option p-4 rounded-lg" data-value="space"><h3 class="font-bold text-lg">Space & Comfort</h3><p class="text-sm text-gray-600">For family, cargo, and long rides.</p></div>
+                    <div class="quiz-option p-4 rounded-lg" data-value="style"><h3 class="font-bold text-lg">Style & Technology</h3><p class="text-sm text-gray-600">Latest features and a modern look.</p></div>
+                </div>
+            </div>
+
+            <!-- Step 4: Digital Showroom -->
+            <div id="quiz-step-4" class="quiz-step">
+                 <div class="text-center">
+                    <h2 class="text-3xl font-bold metrobank-blue" id="showroom-title">Your Top Recommendations</h2>
+                    <p class="text-gray-600 mt-2 mb-6">Based on your answers, here are our top recommendations. You can filter the results further.</p>
+                 </div>
+                 <div class="flex justify-center flex-wrap gap-2 mb-6" id="showroom-filters">
+                    <!-- Filters will be injected here -->
+                 </div>
+                 <div id="showroom-results" class="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[60vh] overflow-y-auto p-2">
+                     <!-- Results will be injected here -->
+                 </div>
+                 <div class="text-center mt-6">
+                    <button id="showAllBtn" class="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-full hover:bg-gray-300 transition ml-2">View All In Budget</button>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Appointment Modal -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content schedule-modal-content">
+             <button id="closeScheduleModalBtn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div id="appointmentFormContainer">
+                <h2 class="text-2xl font-bold mb-2 text-center metrobank-blue">Schedule an Appointment</h2>
+                <p class="text-gray-600 mb-6 text-center">Fill out the form below to request a test drive. A representative will reach out to confirm your booking.</p>
+                <form id="appointmentForm" class="space-y-4">
+                    <div>
+                        <label for="appointmentName" class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" id="appointmentName" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="appointmentEmail" class="block text-sm font-medium text-gray-700">Email Address</label>
+                        <input type="email" id="appointmentEmail" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="appointmentDate" class="block text-sm font-medium text-gray-700">Preferred Date</label>
+                            <input type="date" id="appointmentDate" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                             <label for="appointmentTime" class="block text-sm font-medium text-gray-700">Preferred Time</label>
+                            <input type="time" id="appointmentTime" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="appointmentDealer" class="block text-sm font-medium text-gray-700">Preferred Dealer</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <input type="text" id="appointmentDealer" required readonly placeholder="No dealer selected" class="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-none rounded-l-md sm:text-sm border-gray-300 bg-gray-100">
+                            <button type="button" id="openDealerSelectModalBtn" class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm hover:bg-gray-100">Select...</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full metrobank-blue-bg text-white font-bold py-3 px-6 rounded-full hover:bg-blue-800 transition cta-button-hover">Submit Request</button>
+                </form>
+            </div>
+            <div id="appointmentConfirmation" class="hidden text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <h3 class="text-xl font-bold mt-4">Request Sent!</h3>
+                <p class="text-gray-600 mt-2 max-w-sm mx-auto">Thank you. A representative will reach out to you shortly to confirm your booking.</p>
+                <button id="closeConfirmationBtn" class="mt-6 bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-full hover:bg-gray-300 transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dealer Selection Modal -->
+    <div id="dealerSelectionModal" class="modal">
+        <div class="modal-content locations-modal-content">
+            <button id="closeDealerSelectionBtn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-center mb-6 metrobank-blue">Select a Toyota Dealership</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="dealerIslandSelect" class="block text-sm font-medium text-gray-700">Island</label>
+                    <select id="dealerIslandSelect" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="">Select Island</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="dealerProvinceSelect" class="block text-sm font-medium text-gray-700">Province</label>
+                    <select id="dealerProvinceSelect" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" disabled>
+                        <option value="">Select Province</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="dealerCitySelect" class="block text-sm font-medium text-gray-700">City / Municipality</label>
+                    <select id="dealerCitySelect" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" disabled>
+                        <option value="">Select City</option>
+                    </select>
+                </div>
+            </div>
+             <div id="dealerSelectionList" class="mt-6 max-h-[40vh] overflow-y-auto">
+                <!-- Dealer list for selection will be populated here -->
+             </div>
+        </div>
+    </div>
+    <!-- No replacement needed; login icon removed as requested. -->
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content login-modal-content">
+            <button id="closeLoginModalBtn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 z-10">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-center mb-2 metrobank-blue">Welcome Back!</h2>
+            <p class="text-center text-gray-500 mt-2 mb-6">Log in to access your account.</p>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="loginEmail" class="block text-sm font-medium text-gray-700">Email Address</label>
+                    <input type="email" id="loginEmail" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="loginPassword" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="loginPassword" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <button type="submit" class="w-full metrobank-blue-bg text-white font-bold py-3 px-6 rounded-full hover:bg-blue-800 transition cta-button-hover">Login</button>
+            </form>
+            <p class="text-center text-sm text-gray-600 mt-6">
+                Don't have an account? <a href="#" id="showSignupModalBtn" class="font-medium text-metrobank-blue hover:underline">Sign up</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Newsletter Signup Modal -->
+    <!-- No extra HTML needed here; the logo carousel is already present in the newsletter modal.
+    To make the logos move horizontally, ensure the .partner-logos-track is set to display: flex and is animated via JS.
+    The provided JS at the bottom of your file already animates the logos horizontally every 5 seconds.
+    If you want the logos to move continuously (smoothly), replace the setInterval logic with a CSS animation: -->
+
+    <style>
+    @keyframes logo-scroll {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+    }
+    .partner-logos-track {
+        display: flex;
+        width: max-content;
+        animation: logo-scroll 20s linear infinite;
+    }
+    </style>
+    <script>
+    // Duplicate logos for seamless loop
+    document.addEventListener('DOMContentLoaded', function() {
+        const logoTrack = document.querySelector('.partner-logos-track');
+        if (logoTrack) {
+            const logos = Array.from(logoTrack.children);
+            logos.forEach(logo => {
+                logoTrack.appendChild(logo.cloneNode(true));
+            });
+        }
+    });
+    </script>
+    <style>
+    .partner-logos-container {
+        filter: none !important;
+        opacity: 1 !important;
+    }
+    .partner-logos-track img {
+        filter: none !important;
+        opacity: 1 !important;
+    }
+    </style>
+    <div id="newsletterModal" class="modal">
+        <div class="modal-content signup-modal-content">
+            <button id="closeNewsletterModalBtn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 z-10">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div id="newsletterSuccessView" class="hidden text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <h3 class="text-xl font-bold mt-4">Subscribed!</h3>
+                <p class="text-gray-600 mt-2 max-w-sm mx-auto">Thank you for subscribing to our newsletter. Stay tuned for the latest car news and exclusive offers.</p>
+                <button id="closeNewsletterSuccessBtn" class="mt-6 bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-full hover:bg-gray-300 transition">Close</button>
+            </div>
+            <div id="newsletterFormContainer">
+                <h2 class="text-2xl font-bold text-center metrobank-blue">Subscribe to Our Newsletter</h2>
+                <p class="text-center text-gray-500 mt-2 mb-6">Get the latest car news, tips, and exclusive promos from our partners.</p>
+                <div class="partner-logos-container mb-6">
+                    <div class="partner-logos-track">
+                        <img src="https://www.gtcapital.com.ph/storage/uploads/2017/09/59bc94ce59565.png" alt="Metrobank" onerror="this.onerror=null;this.src='https://placehold.co/150x24/ccc/000?text=Metrobank';">
+                        <img src="https://www.carlogos.org/car-logos/toyota-logo-1989-download.png" alt="Toyota" onerror="this.onerror=null;this.src='https://placehold.co/150x24/ccc/000?text=Toyota';">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/AXA_Logo.svg/1024px-AXA_Logo.svg.png" alt="AXA" onerror="this.onerror=null;this.src='https://placehold.co/150x24/ccc/000?text=AXA';">
+                        <img src="https://federalland.ph/wp-content/themes/FederalLandTheme/img/logo/fli-logo-header.png" alt="Federal Land" onerror="this.onerror=null;this.src='https://placehold.co/150x24/ccc/000?text=Federal+Land';">
+                    </div>
+                </div>
+                <form id="newsletterForm" class="space-y-4">
+                    <div>
+                        <label for="newsletterEmail" class="block text-sm font-medium text-gray-700">Email Address</label>
+                        <input type="email" id="newsletterEmail" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <button type="submit" class="w-full metrobank-blue-bg text-white font-bold py-3 px-6 rounded-full hover:bg-blue-800 transition cta-button-hover">Subscribe</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Newsletter Modal logic
+        const newsletterModal = document.getElementById('newsletterModal');
+        const openNewsletterModalBtn = document.getElementById('openSignupModalBtn');
+        const openNewsletterModalBtnMobile = document.getElementById('openSignupModalBtnMobile');
+        const closeNewsletterModalBtn = document.getElementById('closeNewsletterModalBtn');
+        const newsletterForm = document.getElementById('newsletterForm');
+        const newsletterFormContainer = document.getElementById('newsletterFormContainer');
+        const newsletterSuccessView = document.getElementById('newsletterSuccessView');
+        const closeNewsletterSuccessBtn = document.getElementById('closeNewsletterSuccessBtn');
+
+        function openModal(modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => {
+                modal.classList.add('visible');
+            }, 10);
+        }
+        function closeModal(modal) {
+            modal.classList.remove('visible');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }, 300);
+        }
+
+        if(openNewsletterModalBtn) openNewsletterModalBtn.addEventListener('click', () => {
+            newsletterForm.reset();
+            newsletterFormContainer.classList.remove('hidden');
+            newsletterSuccessView.classList.add('hidden');
+            openModal(newsletterModal);
+        });
+        if(openNewsletterModalBtnMobile) openNewsletterModalBtnMobile.addEventListener('click', () => {
+            newsletterForm.reset();
+            newsletterFormContainer.classList.remove('hidden');
+            newsletterSuccessView.classList.add('hidden');
+            openModal(newsletterModal);
+        });
+        if(closeNewsletterModalBtn) closeNewsletterModalBtn.addEventListener('click', () => closeModal(newsletterModal));
+        if(closeNewsletterSuccessBtn) closeNewsletterSuccessBtn.addEventListener('click', () => closeModal(newsletterModal));
+        if(newsletterForm) {
+            newsletterForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                newsletterFormContainer.classList.add('hidden');
+                newsletterSuccessView.classList.remove('hidden');
+            });
+        }
+        window.addEventListener('click', (event) => {
+            if (event.target == newsletterModal) closeModal(newsletterModal);
+        });
+    });
+    </script>
+
+    <!-- MIA Chatbot -->
+    <div id="chatbot-container">
+        <div id="chatbot-window">
+            <div id="chatbot-header">
+                <h3 class="font-bold text-lg">MIA Chatbot</h3>
+                <button id="chatbot-close-btn" class="text-white">&times;</button>
+            </div>
+            <div id="chatbot-messages">
+                <!-- Chat messages will appear here -->
+            </div>
+            <form id="chatbot-input-form">
+                <input type="text" id="chatbot-input" placeholder="Ask a question..." autocomplete="off">
+                <button type="submit" id="chatbot-send-btn">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2.925 3.575l14.5 6.425a.5.5 0 010 .9l-14.5 6.425a.5.5 0 01-.675-.45V4.025a.5.5 0 01.675-.45z"></path></svg>
+                </button>
+            </form>
+        </div>
+        <button id="chatbot-open-btn">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2s10 4.477 10 10z"></path></svg>
+        </button>
+    </div>
+
+
+    <script>
+    // --- Firebase Configuration ---
+    // IMPORTANT: Replace with your actual Firebase project configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+    const yahooProvider = new firebase.auth.OAuthProvider('yahoo.com');
+
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // --- Dropdown Menu ---
+        const dropdownContainer = document.getElementById('dropdown-container');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        let dropdownTimeout;
+
+        dropdownContainer.addEventListener('mouseenter', () => {
+            clearTimeout(dropdownTimeout);
+            dropdownMenu.classList.remove('hidden');
+            setTimeout(() => {
+                dropdownMenu.classList.remove('opacity-0', '-translate-y-2');
+            }, 10);
+        });
+
+        dropdownContainer.addEventListener('mouseleave', () => {
+            dropdownTimeout = setTimeout(() => {
+                dropdownMenu.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(() => {
+                    dropdownMenu.classList.add('hidden');
+                }, 200);
+            }, 300);
+        });
+
+
+        // --- Hero Carousel ---
+        const heroCarousel = document.querySelector('#hero-carousel .carousel-track');
+        const heroSlides = Array.from(heroCarousel.children);
+        const heroDotsContainer = document.getElementById('hero-dots');
+        let heroCurrentIndex = 0;
+        let heroInterval;
+
+        function setupHeroCarousel() {
+            heroSlides.forEach((slide, index) => {
+                const dot = document.createElement('button');
+                dot.classList.add('carousel-dot');
+                dot.addEventListener('click', () => {
+                    heroCurrentIndex = index;
+                    updateHeroCarousel();
+                    resetHeroInterval();
+                });
+                heroDotsContainer.appendChild(dot);
+            });
+            updateHeroCarousel();
+            startHeroInterval();
+        }
+
+        function updateHeroCarousel() {
+            heroCarousel.style.transform = 'translateX(-' + heroCurrentIndex * 100 + '%)';
+            const dots = Array.from(heroDotsContainer.children);
+            
+            heroSlides.forEach((slide, index) => {
+                slide.classList.toggle('active', index === heroCurrentIndex);
+            });
+
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === heroCurrentIndex);
+            });
+        }
+        
+        function startHeroInterval() {
+            heroInterval = setInterval(() => {
+                heroCurrentIndex = (heroCurrentIndex + 1) % heroSlides.length;
+                updateHeroCarousel();
+            }, 10000); // Change slide every 10 seconds
+        }
+
+        function resetHeroInterval() {
+            clearInterval(heroInterval);
+            startHeroInterval();
+        }
+
+        setupHeroCarousel();
+
+        // --- Promo Carousel ---
+        const promoCarousel = document.querySelector('.promo-carousel .carousel-track');
+        const promoSlides = Array.from(promoCarousel.children);
+        const promoNextBtn = document.getElementById('promo-next');
+        const promoPrevBtn = document.getElementById('promo-prev');
+        let promoCurrentIndex = 0;
+        
+        function getSlidesPerView() {
+            if (window.innerWidth >= 1024) return 3;
+            if (window.innerWidth >= 768) return 2;
+            return 1;
+        }
+
+        function updatePromoCarousel() {
+            const slidesPerView = getSlidesPerView();
+            if (promoSlides.length === 0) return;
+            const maxIndex = promoSlides.length - slidesPerView;
+            if (promoCurrentIndex > maxIndex) promoCurrentIndex = maxIndex;
+            if (promoCurrentIndex < 0) promoCurrentIndex = 0;
+            
+            const slideWidth = promoSlides[0].getBoundingClientRect().width + 20; // width + margin
+            promoCarousel.style.transform = `translateX(-${promoCurrentIndex * slideWidth}px)`;
+            
+            promoPrevBtn.style.display = promoCurrentIndex === 0 ? 'none' : 'flex';
+            promoNextBtn.style.display = promoCurrentIndex >= maxIndex ? 'none' : 'flex';
+        }
+
+        promoNextBtn.addEventListener('click', () => {
+            promoCurrentIndex++;
+            updatePromoCarousel();
+        });
+
+        promoPrevBtn.addEventListener('click', () => {
+            promoCurrentIndex--;
+            updatePromoCarousel();
+        });
+        
+        window.addEventListener('resize', updatePromoCarousel);
+        updatePromoCarousel();
+
+
+        // --- Modal Logic ---
+        function openModal(modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => {
+                modal.classList.add('visible');
+            }, 10);
+        }
+
+        function closeModal(modal) {
+            modal.classList.remove('visible');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }, 300);
+        }
+
+        // --- Scroll Animations ---
+        const sections = document.querySelectorAll('.fade-in-section');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+
+        // --- Quiz Modal & Digital Showroom Logic ---
+        const quizModal = document.getElementById('quizModal');
+        const openQuizBtn = document.getElementById('openQuizBtn');
+        const quizNavContainer = document.getElementById('quiz-navigation');
+        const showAllBtn = document.getElementById('showAllBtn');
+        const quizSteps = document.querySelectorAll('.quiz-step');
+        const progressBar = document.getElementById('quizProgressBar');
+        const showroomTitle = document.getElementById('showroom-title');
+        const userAnswers = {};
+        let currentStep = 1;
+
+        const carDatabase = [
+            // Passenger Cars
+            { name: 'Toyota Vios', type: 'Sedan', seats: 5, engine: '1.3L, 1.5L', transmission: 'A/T, M/T', price: 732000, image: 'https://content.toyota.com.ph/uploads/articles/251/003_251_1615361615860_000.png', tags: ['fuel', 'space'], url: 'https://toyota.com.ph/vios' },
+            { name: 'Toyota Wigo', type: 'Hatchback', seats: 5, engine: '1.0L', transmission: 'A/T, M/T', price: 609000, image: 'https://online.toyota.com.ph/medias/B100LAGQSFF007-B100LAGQSFF007-1G3-515151-002-497-1595210286453-000.jpg-1659662351973-TMP-2890Wx1690H?context=bWFzdGVyfHJvb3R8NDk2MTEyfGltYWdlL2pwZWd8YUdFNUwyaGtZaTg0T1RjMU16QTRPVEUwTnpFNEwwSXhNREJNUVVkUlUwWkdNREEzWDBJeE1EQk1RVWRSVTBaR01EQTNYekZITXkwak5URTFNVFV4WHpBd01sODBPVGRmTVRVNU5USXhNREk0TmpRMU0xOHdNREF1YW5Cblh6RTJOVGsyTmpJek5URTVOek5mVkUxUUxUSTRPVEJYZURFMk9UQkl8YTVkNmIyNzk4NzgzZjk3MGIxNzlmYzI0YjUzNzA1NDcwMmE5YzBjOTBhYjBjYWRjMmMyY2I0ODJkYmJjYjcxNQ', tags: ['fuel', 'style'], url: 'https://toyota.com.ph/wigo' },
+            { name: 'Toyota Corolla Altis', type: 'Sedan', seats: 5, engine: '1.8L Hybrid, 1.6L', transmission: 'A/T', price: 1135000, image: 'https://www.toyota.com.sg/showroom/new-models/-/media/5c6f78660bf646fc9c475513e44a2f9e.png', tags: ['style', 'fuel', 'Hybrid'], url: 'https://toyota.com.ph/corolla-altis' },
+            { name: 'Toyota Camry', type: 'Sedan', seats: 5, engine: '2.5L Hybrid', transmission: 'A/T', price: 2723000, image: 'https://images.dealer.com/ddc/vehicles/2025/Toyota/Camry/Sedan/still/front-left/front-left-640-en_US.jpg', tags: ['style', 'performance', 'Hybrid'], url: 'https://toyota.com.ph/camry' },
+
+            // MPVs / Vans
+            { name: 'Toyota Innova', type: 'MPV', seats: 7, engine: '2.8L Diesel', transmission: 'A/T, M/T', price: 1592000, image: 'https://static3.toyotabharat.com/images/showroom/innova-mmc/unrivaled-upgrades-banner1600x1000.jpg', tags: ['space', 'performance'], url: 'https://toyota.com.ph/innova' },
+            { name: 'Toyota Zenix', type: 'MPV', seats: 7, engine: '2.0L, 2.0L Hybrid', transmission: 'A/T', price: 1670000, image: 'https://unbox.ph/wp-content/uploads/2023/06/Toyota-Innova-Zenix-Indonesia-17s.jpg', tags: ['space', 'style', 'Hybrid'], url: 'https://toyota.com.ph/zenix' },
+            { name: 'Toyota Avanza', type: 'MPV', seats: 7, engine: '1.3L, 1.5L', transmission: 'A/T, M/T', price: 1059000, image: 'https://toyotabatangas.com.ph/wp-content/uploads/2019/09/avanza-white-1.png', tags: ['space', 'fuel'], url: 'https://toyota.com.ph/avanza' },
+            { name: 'Toyota Veloz', type: 'SUV', seats: 7, engine: '1.5L', transmission: 'A/T', price: 1216000, image: 'https://storage.googleapis.com/tsrbucket/Veloz/Toyota-Veloz_Purplish-Silver.png', tags: ['style', 'space'], url: 'https://toyota.com.ph/veloz' },
+            { name: 'Toyota Alphard', type: 'Van', seats: 7, engine: '2.5L Hybrid', transmission: 'A/T', price: 4940000, image: 'https://global.toyota/pages/news/images/2023/06/21/1330/002.jpg', tags: ['space', 'style'], url: 'https://toyota.com.ph/alphard' },
+            { name: 'Toyota HiAce', type: 'Van', seats: 12, engine: '2.8L Diesel', transmission: 'A/T, M/T', price: 1390000, image: 'https://www.toyotasanpablo.com.ph/slider/vehicles/hiacesupergrandiaelite/GrayMetallic.png', tags: ['space', 'performance'], url: 'https://toyota.com.ph/hiace' },
+
+            // SUVs / Crossovers
+            { name: 'Toyota Raize', type: 'SUV', seats: 5, engine: '1.2L, 1.0L Turbo', transmission: 'A/T, M/T', price: 751000, image: 'https://www.toyota-trinidad.com/wp-content/uploads/RAIZE-black.jpg', tags: ['style', 'performance'], url: 'https://toyota.com.ph/raize' },
+            { name: 'Toyota Rush', type: 'SUV', seats: 7, engine: '1.5L', transmission: 'A/T', price: 1176000, image: 'https://toyotasantarosa.com.ph/wp-content/uploads/2021/01/corollacross.png', tags: ['space', 'performance'], url: 'https://toyota.com.ph/rush' },
+            { name: 'Toyota Yaris Cross', type: 'SUV', seats: 5, engine: '1.5L Hybrid', transmission: 'A/T', price: 1200000, image: 'https://www.autoindustriya.com/cdn-cgi/image/width=720,quality=60,format=auto/images/new-cars/Toyota/2024_Yaris-Cross-1.jpg', tags: ['fuel', 'style', 'Hybrid'], url: 'https://toyota.com.ph/yaris-cross' },
+            { name: 'Toyota Corolla Cross', type: 'SUV', seats: 5, engine: '1.8L Hybrid', transmission: 'A/T', price: 1763000, image: 'https://paultan.org/image/2021/06/2022-Toyota-Corolla-Cross-US-debut-18-1200x628.jpg', tags: ['fuel', 'style', 'Hybrid'], url: 'https://toyota.com.ph/corolla-cross' },
+            { name: 'Toyota RAV4', type: 'SUV', seats: 5, engine: '2.5L Hybrid', transmission: 'A/T', price: 2266000, image: 'https://global.toyota/pages/models/images/rav4/rav4_ogp_02.jpg', tags: ['fuel', 'performance', 'Hybrid'], url: 'https://toyota.com.ph/rav4' },
+            { name: 'Toyota Fortuner', type: 'SUV', seats: 7, engine: '2.4L, 2.8L Diesel', transmission: 'A/T, M/T', price: 1736000, image: 'https://storage.googleapis.com/tmibucket/FORT_GRS/fort_grs_new.png', tags: ['performance', 'space'], url: 'https://toyota.com.ph/fortuner' },
+            { name: 'Toyota Land Cruiser Prado', type: 'SUV', seats: 7, engine: '2.8L Diesel', transmission: 'A/T', price: 4174000, image: 'https://global.toyota/pages/news/images/2024/04/18/1330/20240418_01_ogp.jpg', tags: ['performance', 'space'], url: 'https://toyota.com.ph/land-cruiser-prado' },
+            { name: 'Toyota Land Cruiser 300', type: 'SUV', seats: 7, engine: '3.3L Diesel', transmission: 'A/T', price: 5210000, image: 'https://images.firstpost.com/wp-content/uploads/2021/06/2022_toyota_land_cruiser_revealed_1.jpg', tags: ['performance', 'space', 'style'], url: 'https://toyota.com.ph/land-cruiser' },
+
+            // Pickup Trucks
+            { name: 'Toyota Hilux', type: 'Pickup', seats: 5, engine: '2.4L, 2.8L Diesel', transmission: 'A/T, M/T', price: 1312000, image: 'https://imgcdn.zigwheels.ph/large/gallery/exterior/30/813/toyota-hilux-front-angle-low-view-236132.jpg', tags: ['performance'], url: 'https://toyota.com.ph/hilux' },
+
+            // Performance / GR Line
+            { name: 'Toyota GR Supra', type: 'Coupe', seats: 2, engine: '3.0L Turbo', transmission: 'A/T', price: 5100000, image: 'https://s3-ap-southeast-1.amazonaws.com/motoristprod/editors%2Fimages%2F1732850183790-1732850183790.jpeg', tags: ['performance', 'style'], url: 'https://toyota.com.ph/gr-supra' },
+            { name: 'Toyota GR 86', type: 'Coupe', seats: 4, engine: '2.4L', transmission: 'A/T, M/T', price: 2755000, image: 'https://cdn.motor1.com/images/mgl/x7GYG/s3/2022-toyota-gr-86.jpg', tags: ['performance', 'style'], url: 'https://toyota.com.ph/gr-86' },
+            { name: 'Toyota GR Yaris', type: 'Hatchback', seats: 4, engine: '1.6L Turbo', transmission: 'M/T', price: 2740000, image: 'https://www.autoindustriya.com/cdn-cgi/image/width=720,quality=60,format=auto/images/posts/post26752.jpg', tags: ['performance', 'style'], url: 'https://toyota.com.ph/gr-yaris' },
+        ];
+
+        if(openQuizBtn) {
+            openQuizBtn.addEventListener('click', () => {
+                openModal(quizModal);
+                resetQuiz();
+            });
+        }
+
+        function resetQuiz() {
+            currentStep = 1;
+            Object.keys(userAnswers).forEach(key => delete userAnswers[key]);
+            document.querySelectorAll('.quiz-option').forEach(el => el.classList.remove('selected'));
+            showroomTitle.textContent = "Your Top Recommendations";
+            showAllBtn.classList.remove('hidden');
+            goToStep(1);
+        }
+
+        function updateQuizNav() {
+            quizNavContainer.innerHTML = '';
+            if (currentStep > 1) {
+                const backBtn = document.createElement('button');
+                backBtn.innerHTML = `<svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Back`;
+                backBtn.className = 'flex items-center text-gray-600 hover:text-gray-900 font-semibold';
+                backBtn.onclick = () => goToStep(currentStep - 1);
+                quizNavContainer.appendChild(backBtn);
+            }
+        }
+
+        function goToStep(stepNumber) {
+            currentStep = stepNumber;
+            quizSteps.forEach(step => step.classList.remove('active'));
+            document.getElementById(`quiz-step-${stepNumber}`).classList.add('active');
+            
+            const totalSteps = 3; // Total number of question steps
+            const progress = stepNumber > totalSteps ? 100 : ((stepNumber - 1) / totalSteps) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            updateQuizNav();
+
+            if (stepNumber === 4) {
+                generateShowroom();
+            }
+        }
+
+        quizSteps.forEach((step, index) => {
+            const stepNumber = index + 1;
+            const options = step.querySelectorAll('.quiz-option');
+            options.forEach(option => {
+                option.addEventListener('click', () => {
+                    options.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    userAnswers[`step${stepNumber}`] = option.dataset.value;
+                    setTimeout(() => goToStep(stepNumber + 1), 300);
+                });
+            });
+        });
+
+        function generateShowroom() {
+            const budget = userAnswers.step1;
+            const type = userAnswers.step2;
+            const priority = userAnswers.step3;
+
+            // 1. Filter by budget first
+            let recommendations = carDatabase.filter(car => {
+                const [min, max] = getPriceRange(budget);
+                return car.price >= min && car.price <= max;
+            });
+
+            // 2. Strictly filter by the selected type
+            recommendations = recommendations.filter(car => {
+                 return car.type === type || (type === 'Hybrid' && car.tags.includes('Hybrid'));
+            });
+
+            // 3. Sort the strictly filtered list by priority
+            recommendations.sort((a, b) => {
+                const scoreA = a.tags.includes(priority) ? 1 : 0;
+                const scoreB = b.tags.includes(priority) ? 1 : 0;
+                return scoreB - scoreA;
+            });
+            
+            displayShowroomResults(recommendations.slice(0, 3)); // Show top 3 recommendations
+            setupShowroomFilters(recommendations, recommendations);
+        }
+        
+        function displayShowroomResults(cars) {
+            const resultsContainer = document.getElementById('showroom-results');
+            resultsContainer.innerHTML = '';
+            if (cars.length === 0) {
+                resultsContainer.innerHTML = `<p class="text-center text-gray-600 col-span-full">No cars match your criteria. Please try different options.</p>`;
+                return;
+            }
+            
+            cars.forEach(car => {
+                const carEl = document.createElement('div');
+                carEl.className = 'border rounded-lg p-4 bg-white shadow-sm flex flex-col';
+                carEl.innerHTML = `
+                    <img src="${car.image}" alt="${car.name}" class="w-full h-40 object-cover rounded-md mb-4" onerror="this.onerror=null;this.src='https://placehold.co/600x400/e2e8f0/4a5568?text=Image+Not+Found';">
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-lg">${car.name}</h4>
+                        <p class="text-sm text-gray-500 mb-2">${car.type}</p>
+                        <p class="font-semibold text-metrobank-blue text-lg">Starts at ₱${car.price.toLocaleString()}</p>
+                        <div class="text-xs text-gray-600 mt-2 grid grid-cols-2 gap-1">
+                            <span><strong>Seats:</strong> ${car.seats}</span>
+                            <span><strong>Engine:</strong> ${car.engine}</span>
+                            <span colspan="2"><strong>Transmission:</strong> ${car.transmission}</span>
+                        </div>
+                    </div>
+                    <a href="${car.url}" target="_blank" class="mt-4 w-full text-center bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition">View Details</a>
+                `;
+                resultsContainer.appendChild(carEl);
+            });
+        }
+
+        function setupShowroomFilters(carsToFilter, originalCarSet) {
+            const filtersContainer = document.getElementById('showroom-filters');
+            const carTypes = ['All', ...new Set(originalCarSet.map(car => car.type))];
+            
+            filtersContainer.innerHTML = '';
+            carTypes.forEach(type => {
+                const btn = document.createElement('button');
+                btn.textContent = type;
+                btn.dataset.filter = type;
+                btn.className = 'showroom-filter-btn bg-blue-100 text-metrobank-blue px-3 py-1 rounded-full font-semibold text-sm transition hover:bg-blue-200';
+                if (type === 'All') {
+                    btn.classList.add('active');
+                }
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.showroom-filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const filteredCars = type === 'All' ? originalCarSet : originalCarSet.filter(car => car.type === type);
+                    displayShowroomResults(filteredCars);
+                });
+                filtersContainer.appendChild(btn);
+            });
+        }
+
+        function getPriceRange(budgetString) {
+            switch(budgetString) {
+                case '<1m': return [0, 999999];
+                case '1m-1.5m': return [1000000, 1500000];
+                case '1.5m-2.5m': return [1500001, 2500000];
+                case '>2.5m': return [2500001, Infinity];
+                default: return [0, Infinity];
+            }
+        }
+        
+        if(showAllBtn) {
+            showAllBtn.addEventListener('click', () => {
+                showroomTitle.textContent = "Full Digital Showroom";
+                // Show all cars within the selected budget, not the entire database
+                const budget = userAnswers.step1;
+                const budgetFilteredCars = carDatabase.filter(car => {
+                    const [min, max] = getPriceRange(budget);
+                    return car.price >= min && car.price <= max;
+                });
+                displayShowroomResults(budgetFilteredCars);
+                setupShowroomFilters(budgetFilteredCars, budgetFilteredCars);
+                showAllBtn.classList.add('hidden');
+            });
+        }
+        
+        const dealerData = {
+            
+            "Luzon": {
+                "NCR": {
+                    "Manila": ["Toyota Abad Santos", "Toyota Otis, Inc."],
+                    "Quezon City": ["Toyota Balintawak, Inc.", "Toyota Commonwealth, Inc.", "Toyota Cubao", "Toyota Fairview, Inc.", "Toyota North EDSA", "Toyota Quezon Avenue, Inc."],
+                    "Makati": ["Toyota Makati, Inc.", "Toyota Pasong Tamo, Inc."],
+                    "Parañaque": ["Toyota Bicutan, Parañaque"],
+                    "Pasay": ["Toyota Manila Bay Corp."],
+                    "Taguig": ["Toyota Global City, Inc."],
+                    "Alabang": ["Toyota Alabang, Inc."],
+                    "Marikina": ["Toyota Marikina"],
+                    "Pasig": ["Toyota Pasig"],
+                    "Mandaluyong": ["Toyota Shaw, Inc."],
+                    "Valenzuela": ["Toyota Valenzuela, Inc."],
+                },
+                "Albay": {"Legazpi": ["Toyota Albay"]},
+                "Pampanga": {"Angeles": ["Toyota Angeles, Pampanga, Inc."], "San Fernando": ["Toyota San Fernando, Pampanga, Inc."]},
+                "Cavite": {"Bacoor": ["Toyota Bacoor, Cavite, Inc."], "Dasmariñas": ["Toyota Dasmariñas-Cavite"], "Silang": ["Toyota Silang, Cavite, Inc."]},
+                "Benguet": {"Baguio": ["Toyota Baguio City"]},
+                "Bataan": {"Balanga": ["Toyota Bataan, Inc."]},
+                "Batangas": {"Batangas City": ["Toyota Batangas City, Inc."], "Lipa": ["Toyota Lipa, Batangas, Inc."]},
+                "Laguna": {"Calamba": ["Toyota Calamba, Laguna, Inc."], "San Pablo": ["Toyota San Pablo, Laguna, Inc."], "Santa Rosa": ["Toyota Santa Rosa, Laguna, Inc."]},
+                "Oriental Mindoro": {"Calapan": ["Toyota Calapan City, Inc."]},
+                "Camarines Sur": {"Naga": ["Toyota Camarines Sur, Inc."]},
+                "Pangasinan": {"Dagupan": ["Toyota Dagupan City, Inc."]},
+                "Ilocos Norte": {"San Nicolas": ["Toyota Ilocos Norte"]},
+                "Isabela": {"Santiago": ["Toyota Isabela, Inc."]},
+                "La Union": {"Bauang": ["Toyota La Union"]},
+                "Quezon": {"Lucena": ["Toyota Lucena City, Inc."]},
+                "Bulacan": {"Marilao": ["Toyota Marilao, Bulacan, Inc."], "Plaridel": ["Toyota Plaridel, Bulacan"], "San Jose del Monte": ["Toyota San Jose del Monte, Bulacan"]},
+                "Nueva Ecija": {"Cabanatuan": ["Toyota Nueva Ecija, Inc."]},
+                "Palawan": {"Puerto Princesa": ["Toyota Puerto Princesa City, Inc."]},
+                "Zambales": {"Subic": ["Toyota Subic, Inc."]},
+                "Tarlac": {"Tarlac City": ["Toyota Tarlac City"]},
+                "Rizal": {"Taytay": ["Toyota Taytay, Rizal, Inc."]},
+                "Cagayan": {"Tuguegarao": ["Toyota Tuguegarao City"]},
+            },
+            "Visayas": {
+                "Aklan": {"Kalibo": ["Toyota Aklan, Inc."]},
+                "Samar": {"Calbayog": ["Toyota Calbayog, Samar"]},
+                "Cebu": {"Cebu City": ["Toyota Cebu City, Inc."], "Lapu-Lapu": ["Toyota Lapu-Lapu City"], "Mandaue": ["Toyota Mandaue North, Cebu", "Toyota Mandaue South, Cebu"], "Talisay": ["Toyota Talisay, Cebu"]},
+                "Negros Oriental": {"Dumaguete": ["Toyota Dumaguete City"]},
+                "Iloilo": {"Iloilo City": ["Toyota Iloilo, Inc."]},
+                "Negros Occidental": {"Bacolod": ["Toyota Negros Occidental"]},
+                "Capiz": {"Roxas": ["Toyota Roxas City"]},
+                "Leyte": {"Tacloban": ["Toyota Tacloban, Leyte, Inc."]},
+            },
+            "Mindanao": {
+                "Agusan del Norte": {"Butuan": ["Toyota Butuan City"]},
+                "Misamis Oriental": {"Cagayan De Oro": ["Toyota Cagayan De Oro City, Inc."]},
+                "Davao del Sur": {"Davao City": ["Toyota Davao City, Inc.", "Toyota Matina, Davao"]},
+                "Zamboanga del Norte": {"Dipolog": ["Toyota Dipolog City"]},
+                "South Cotabato": {"General Santos": ["Toyota General Santos, Inc."]},
+                "Lanao del Norte": {"Iligan": ["Toyota Iligan City, Inc."]},
+                "Cotabato": {"Kidapawan": ["Toyota Kidapawan City"]},
+                "Davao del Norte": {"Tagum": ["Toyota Tagum City"]},
+                "Bukidnon": {"Valencia": ["Toyota Valencia City, Inc."]},
+                "Zamboanga del Sur": {"Zamboanga City": ["Toyota Zamboanga City"]},
+            }
+        };
+
+        // --- Schedule Appointment & Dealer Selection Modal Logic ---
+        const scheduleModal = document.getElementById('scheduleModal');
+        const dealerSelectionModal = document.getElementById('dealerSelectionModal');
+        const appointmentFormContainer = document.getElementById('appointmentFormContainer');
+        const appointmentForm = document.getElementById('appointmentForm');
+        const appointmentConfirmation = document.getElementById('appointmentConfirmation');
+        const openScheduleModalBtn = document.getElementById('openScheduleModalBtn');
+        const closeScheduleModalBtn = document.getElementById('closeScheduleModalBtn');
+        const closeConfirmationBtn = document.getElementById('closeConfirmationBtn');
+        const appointmentDateInput = document.getElementById('appointmentDate');
+        const openDealerSelectModalBtn = document.getElementById('openDealerSelectModalBtn');
+        const closeDealerSelectionBtn = document.getElementById('closeDealerSelectionBtn');
+        const appointmentDealerInput = document.getElementById('appointmentDealer');
+
+        const dealerIslandSelect = document.getElementById('dealerIslandSelect');
+        const dealerProvinceSelect = document.getElementById('dealerProvinceSelect');
+        const dealerCitySelect = document.getElementById('dealerCitySelect');
+        const dealerSelectionList = document.getElementById('dealerSelectionList');
+
+        // Populate island dropdown in the dealer selection modal
+        Object.keys(dealerData).forEach(island => {
+            const option = document.createElement('option');
+            option.value = island;
+            option.textContent = island;
+            dealerIslandSelect.appendChild(option);
+        });
+
+        dealerIslandSelect.addEventListener('change', () => {
+            const selectedIsland = dealerIslandSelect.value;
+            dealerProvinceSelect.innerHTML = '<option value="">Select Province</option>';
+            dealerCitySelect.innerHTML = '<option value="">Select City</option>';
+            dealerSelectionList.innerHTML = '';
+            dealerProvinceSelect.disabled = true;
+            dealerCitySelect.disabled = true;
+
+            if (selectedIsland) {
+                dealerProvinceSelect.disabled = false;
+                Object.keys(dealerData[selectedIsland]).sort().forEach(province => {
+                    const option = document.createElement('option');
+                    option.value = province;
+                    option.textContent = province;
+                    dealerProvinceSelect.appendChild(option);
+                });
+            }
+        });
+
+        dealerProvinceSelect.addEventListener('change', () => {
+            const selectedIsland = dealerIslandSelect.value;
+            const selectedProvince = dealerProvinceSelect.value;
+            dealerCitySelect.innerHTML = '<option value="">Select City</option>';
+            dealerSelectionList.innerHTML = '';
+            dealerCitySelect.disabled = true;
+        
+            if (selectedProvince) {
+                dealerCitySelect.disabled = false;
+                Object.keys(dealerData[selectedIsland][selectedProvince]).sort().forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    dealerCitySelect.appendChild(option);
+                });
+            }
+        });
+
+        dealerCitySelect.addEventListener('change', () => {
+            const selectedIsland = dealerIslandSelect.value;
+            const selectedProvince = dealerProvinceSelect.value;
+            const selectedCity = dealerCitySelect.value;
+            dealerSelectionList.innerHTML = '';
+
+            if (selectedCity) {
+                const dealers = dealerData[selectedIsland][selectedProvince][selectedCity];
+                const ul = document.createElement('ul');
+                ul.className = 'list-disc list-inside text-gray-700 space-y-1';
+                dealers.sort().forEach(dealer => {
+                    const li = document.createElement('li');
+                    li.className = 'dealer-select-item';
+                    li.textContent = dealer;
+                    li.dataset.dealerName = dealer;
+                    ul.appendChild(li);
+                });
+                dealerSelectionList.appendChild(ul);
+            }
+        });
+
+        dealerSelectionList.addEventListener('click', (e) => {
+            if (e.target && e.target.matches('li.dealer-select-item')) {
+                const selectedDealer = e.target.dataset.dealerName;
+                appointmentDealerInput.value = selectedDealer;
+                closeModal(dealerSelectionModal);
+            }
+        });
+
+        if(openDealerSelectModalBtn) {
+            openDealerSelectModalBtn.addEventListener('click', () => {
+                openModal(dealerSelectionModal);
+            });
+        }
+        
+        if(closeDealerSelectionBtn) closeDealerSelectionBtn.addEventListener('click', () => closeModal(dealerSelectionModal));
+
+
+        // Set min date for date input to today
+        const today = new Date().toISOString().split('T')[0];
+        if(appointmentDateInput) appointmentDateInput.setAttribute('min', today);
+
+        // Handle form submission
+        if(appointmentForm) {
+            appointmentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = {
+                    name: document.getElementById('appointmentName').value,
+                    email: document.getElementById('appointmentEmail').value,
+                    date: appointmentDateInput.value,
+                    time: document.getElementById('appointmentTime').value,
+                    dealer: appointmentDealerInput.value,
+                };
+                console.log('Appointment Request:', formData);
+
+                appointmentFormContainer.style.display = 'none';
+                appointmentConfirmation.style.display = 'block';
+            });
+        }
+
+        // Reset form when modal is opened
+        if(openScheduleModalBtn) {
+            openScheduleModalBtn.addEventListener('click', () => {
+                appointmentForm.reset();
+                appointmentFormContainer.style.display = 'block';
+                appointmentConfirmation.style.display = 'none';
+                openModal(scheduleModal);
+            });
+        }
+        
+        if(closeScheduleModalBtn) closeScheduleModalBtn.addEventListener('click', () => closeModal(scheduleModal));
+        if(closeConfirmationBtn) closeConfirmationBtn.addEventListener('click', () => closeModal(scheduleModal));
+
+
+        // --- Article Filtering ---
+        const articles = [
+            { title: 'Tips for a Successful Car Insurance Claim Process', category: 'insurance', image: 'https://lifebanking.metrobank.com.ph/app/uploads/2024/07/D.FB6-1.png' },
+            { title: 'How Credit Scores Influence Loan Approvals: What You Need to Know', category: 'financing', image: 'https://lifebanking.metrobank.com.ph/app/uploads/2025/05/CRE20_Mobile-Banner_960x620.png' }, 
+            { title: 'Why Comprehensive Insurance is a Must', category: 'insurance', image: 'https://lifebanking.metrobank.com.ph/app/uploads/2024/07/0.01_Mobile-Banner_920x620.jpg' },
+            { title: 'Essential Car Maintenance Checklist', category: 'car-care', image: 'https://lifebanking.metrobank.com.ph/_ipx/f_webp/https://lifebanking.metrobank.com.ph/app/uploads/2023/07/Landing-Page-Desktop-No-Diamond-CF.png' },
+            { title: 'Review: 2024 Toyota Vios', category: 'reviews', image: 'https://lifebanking.metrobank.com.ph/_ipx/f_webp/https://lifebanking.metrobank.com.ph/app/uploads/2023/07/LANDING-PAGE.-DESKTOP.-Cant-Find-CF.png' },
+            { title: 'Budgeting for Monthly Car Expenses', category: 'saving', image: 'https://lifebanking.metrobank.com.ph/app/uploads/2025/05/INV27_Mobile-Banner_960x620.png' },
+        ];
+
+        const articleGrid = document.getElementById('article-grid');
+
+        function displayArticles(filter) {
+            if (!articleGrid) return;
+            articleGrid.innerHTML = '';
+            const filteredArticles = (filter === 'all') ? articles : articles.filter(a => a.category === filter);
+
+            filteredArticles.forEach(article => {
+                const articleEl = document.createElement('a');
+                articleEl.href = "#";
+                articleEl.className = 'article-card h-80 block text-white';
+                articleEl.innerHTML = `
+                    <img src="${article.image}" alt="${article.title}" class="article-card-img" onerror="this.onerror=null;this.src='https://placehold.co/600x400/e2e8f0/4a5568?text=Image+Not+Found';">
+                    <div class="article-card-overlay p-6 flex flex-col justify-end">
+                        <div>
+                            <p class="text-xs font-bold tracking-widest uppercase">${article.category.replace('-', ' ')} | ARTICLE</p>
+                            <h3 class="text-xl font-bold mt-2 mb-3">${article.title}</h3>
+                            <div class="font-semibold flex items-center">Read More <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg></div>
+                        </div>
+                    </div>
+                `;
+                articleGrid.appendChild(articleEl);
+            });
+        }
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+                displayArticles(btn.dataset.filter);
+            });
+        });
+
+        // Initial display
+        displayArticles('all');
+
+        // --- Login/Signup Modal Logic ---
+        const loginModal = document.getElementById('loginModal');
+        const signupModal = document.getElementById('signupModal');
+        const openLoginModalBtn = document.getElementById('openLoginModalBtn');
+        const openLoginModalBtnMobile = document.getElementById('openLoginModalBtnMobile');
+        const closeLoginModalBtn = document.getElementById('closeLoginModalBtn');
+        const closeSignupModalBtn = document.getElementById('closeSignupModalBtn');
+        const showSignupModalBtn = document.getElementById('showSignupModalBtn');
+        const showLoginModalBtn = document.getElementById('showLoginModalBtn');
+        const signupFormContainer = document.getElementById('signupFormContainer');
+        const signupSuccessView = document.getElementById('signupSuccessView');
+        const signupForm = document.getElementById('signupForm');
+        const backToLoginBtn = document.getElementById('backToLoginBtn');
+        const openSignupModalBtn = document.getElementById('openSignupModalBtn');
+        const openSignupModalBtnMobile = document.getElementById('openSignupModalBtnMobile');
+
+
+        openLoginModalBtn.addEventListener('click', () => openModal(loginModal));
+        openLoginModalBtnMobile.addEventListener('click', () => openModal(loginModal));
+        openSignupModalBtn.addEventListener('click', () => openModal(signupModal));
+        openSignupModalBtnMobile.addEventListener('click', () => openModal(signupModal));
+        
+        closeLoginModalBtn.addEventListener('click', () => closeModal(loginModal));
+        closeSignupModalBtn.addEventListener('click', () => closeModal(signupModal));
+
+        showSignupModalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeModal(loginModal);
+            // Reset signup form before showing
+            signupForm.reset();
+            signupFormContainer.classList.remove('hidden');
+            signupSuccessView.classList.add('hidden');
+            openModal(signupModal);
+        });
+        
+        showLoginModalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeModal(signupModal);
+            openModal(loginModal);
+        });
+
+        backToLoginBtn.addEventListener('click', (e) => {
+             e.preventDefault();
+            closeModal(signupModal);
+            openModal(loginModal);
+        });
+
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log('Signup form submitted');
+            // In a real app, you would handle form submission to your backend here.
+            signupFormContainer.classList.add('hidden');
+            signupSuccessView.classList.remove('hidden');
+        });
+
+
+        // --- Logo Carousel ---
+        const logoTrack = document.querySelector('.partner-logos-track');
+        let logoIndex = 0;
+        if (logoTrack) {
+            const logos = Array.from(logoTrack.children);
+            const logoCount = logos.length;
+            const logoWidth = logos[0].clientWidth;
+
+            // Clone logos for seamless loop
+            logos.forEach(logo => {
+                logoTrack.appendChild(logo.cloneNode(true));
+            });
+
+            setInterval(() => {
+                logoIndex++;
+                logoTrack.style.transition = 'transform 0.8s ease-in-out';
+                logoTrack.style.transform = `translateX(-${logoIndex * logoWidth}px)`;
+
+                if (logoIndex >= logoCount) {
+                    setTimeout(() => {
+                        logoTrack.style.transition = 'none';
+                        logoIndex = 0;
+                        logoTrack.style.transform = `translateX(0)`;
+                    }, 800);
+                }
+            }, 5000); // Changed to 5 seconds
+        }
+
+        // --- Firebase Social Login ---
+        function handleAuth(provider) {
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    console.log("Signed in as:", user.displayName);
+                    closeModal(signupModal);
+                    // Optionally show a temporary success message on the main page
+                })
+                .catch((error) => {
+                    console.error("Authentication Error:", error.message);
+                    alert("Error signing in: " + error.message);
+                });
+        }
+
+        document.getElementById('googleSignupBtn').addEventListener('click', () => handleAuth(googleProvider));
+        document.getElementById('yahooSignupBtn').addEventListener('click', () => handleAuth(yahooProvider));
+
+
+        // General Modal closing logic
+        window.addEventListener('click', (event) => {
+            if (event.target == quizModal) closeModal(quizModal);
+            if (event.target == dealerSelectionModal) closeModal(dealerSelectionModal);
+            if (event.target == scheduleModal) closeModal(scheduleModal);
+            if (event.target == loginModal) closeModal(loginModal);
+            if (event.target == signupModal) closeModal(signupModal);
+        });
+        
+        // --- Chatbot Logic ---
+        const chatbotWindow = document.getElementById('chatbot-window');
+        const openChatbotBtn = document.getElementById('chatbot-open-btn');
+        const closeChatbotBtn = document.getElementById('chatbot-close-btn');
+        const messagesContainer = document.getElementById('chatbot-messages');
+        const chatbotForm = document.getElementById('chatbot-input-form');
+        const chatbotInput = document.getElementById('chatbot-input');
+
+        function toggleChatbot() {
+            chatbotWindow.classList.toggle('visible');
+        }
+
+        openChatbotBtn.addEventListener('click', () => {
+            toggleChatbot();
+            if (messagesContainer.children.length === 0) {
+                 addMessage("Hello! I'm MIA, your Metrobank Intelligent Assistant. How can I help you with your car ownership journey today?", 'bot');
+            }
+        });
+        closeChatbotBtn.addEventListener('click', toggleChatbot);
+
+        function addMessage(text, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${type}`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'chat-message-bubble';
+            bubbleDiv.textContent = text;
+            
+            messageDiv.appendChild(bubbleDiv);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        chatbotForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const userInput = chatbotInput.value.trim();
+            if (userInput) {
+                addMessage(userInput, 'user');
+                chatbotInput.value = '';
+                setTimeout(() => generateBotResponse(userInput), 1000);
+            }
+        });
+
+        function generateBotResponse(userInput) {
+            const lowerInput = userInput.toLowerCase();
+            let response = "I'm sorry, I can only answer questions about car loans, promos, and appointments. How can I help with those?";
+
+            if (lowerInput.includes('loan') || lowerInput.includes('calculate')) {
+                response = "You can calculate your potential car loan budget using our calculator. Just click the 'Calculate your Car Budget' button or I can take you there.";
+            } else if (lowerInput.includes('promo')) {
+                response = "We have several exciting promos for car owners! These include fuel vouchers, 0% installment on accessories, and insurance discounts. You can find them in the 'Exclusive Car Promos' section.";
+            } else if (lowerInput.includes('appointment') || lowerInput.includes('test drive')) {
+                response = "You can schedule a test drive by clicking the 'Schedule an Appointment' button. You'll be able to choose your preferred dealer and time.";
+            } else if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
+                response = "Hello! How can I assist you with your car ownership journey today?";
+            }
+
+            addMessage(response, 'bot');
+        }
+        
+        // --- Mobile Menu Toggle ---
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+    });
+    </script>
+</body>
+</html>
